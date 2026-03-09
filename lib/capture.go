@@ -4,7 +4,7 @@ import (
     "fmt"
     "log"
     "os"
-    "runtime/debug"
+    // "runtime/debug"
 
     "github.com/gordonklaus/portaudio"
 )
@@ -33,42 +33,49 @@ func NewRecorder(sampleRate, chunkMs int) (*Recorder, error) {
     // Получаем список всех устройств с защитой от паники
     log.Println("Getting device list...")
 
-    var devices []*portaudio.DeviceInfo
-    var devErr error
+    // var devices []*portaudio.DeviceInfo
+    // var devErr error
 
-    func() {
-        defer func() {
-            if r := recover(); r != nil {
-                log.Printf("🔥🔥🔥 PANIC in portaudio.Devices(): %v", r)
-                debug.PrintStack()
-                devErr = fmt.Errorf("panic: %v", r)
-            }
-        }()
-        devices, devErr = portaudio.Devices()
-    }()
+    // func() {
+    //     defer func() {
+    //         if r := recover(); r != nil {
+    //             log.Printf("🔥🔥🔥 PANIC in portaudio.Devices(): %v", r)
+    //             debug.PrintStack()
+    //             devErr = fmt.Errorf("panic: %v", r)
+    //         }
+    //     }()
+    //     devices, devErr = portaudio.Devices()
+    // }()
 
-    if devErr != nil {
-        portaudio.Terminate()
-        return nil, fmt.Errorf("can't get devices: %w", devErr)
-    }
+    // if devErr != nil {
+    //     portaudio.Terminate()
+    //     return nil, fmt.Errorf("can't get devices: %w", devErr)
+    // }
 
     // Ищем первое устройство с входом (микрофон)
-    var device *portaudio.DeviceInfo
-    for i, d := range devices {
-        log.Printf("Device %d: %s (inputs: %d, outputs: %d)",
-            i, d.Name, d.MaxInputChannels, d.MaxOutputChannels)
-        if d.MaxInputChannels > 0 {
-            device = d
-            log.Printf("✅ Found input device: %s", d.Name)
-            break
-        }
-    }
+    // var device *portaudio.DeviceInfo
+    // for i, d := range devices {
+    //     log.Printf("Device %d: %s (inputs: %d, outputs: %d)",
+    //         i, d.Name, d.MaxInputChannels, d.MaxOutputChannels)
+    //     if d.MaxInputChannels > 0 {
+    //         device = d
+    //         log.Printf("✅ Found input device: %s", d.Name)
+    //         break
+    //     }
+    // }
 
-    if device == nil {
+    // if device == nil {
+    //     portaudio.Terminate()
+    //     return nil, fmt.Errorf("no input device found")
+    // }
+    log.Println("Getting default binput device...")
+    device, err := portaudio.DefaultInputDevice()
+    if err != nil {
         portaudio.Terminate()
-        return nil, fmt.Errorf("no input device found")
+        return nil, fmt.Errorf("no default input device: %w", err)
     }
-    log.Printf("Using input device: %s", device.Name)
+    log.Printf("✅ Using device: %s", device.Name)
+
 
     chunkSize := sampleRate * chunkMs / 1000
     log.Printf("Chunk size: %d frames", chunkSize)
