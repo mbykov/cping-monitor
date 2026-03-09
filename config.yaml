@@ -1,0 +1,22 @@
+server:
+  host: "localhost"
+  port: 6006
+  cert: "cert.pem"
+  use_https: false
+
+audio:
+  source: "microphone"  # или "file"
+  file_path: ""
+  sample_rate: 16000
+  chunk_ms: 100
+  silence_ms: 500
+
+test:
+  repeat: 5
+  interval: 1s
+  warmup: 2
+
+output:
+  save_audio: true
+  save_dir: "./recordings"
+  log_level: "info"
