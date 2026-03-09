@@ -12,6 +12,7 @@ type Config struct {
         Host     string `yaml:"host"`
         Port     int    `yaml:"port"`
         Cert     string `yaml:"cert"`
+        Key      string `yaml:"key"`
         UseHTTPS bool   `yaml:"use_https"`
     } `yaml:"server"`
 
@@ -19,14 +20,14 @@ type Config struct {
         Source     string `yaml:"source"` // "microphone" или "file"
         FilePath   string `yaml:"file_path"`
         SampleRate int    `yaml:"sample_rate"`
-        ChunkMs    int    `yaml:"chunk_ms"`   // размер чанка для отправки
-        SilenceMs  int    `yaml:"silence_ms"` // тишина для определения конца
+        ChunkMs    int    `yaml:"chunk_ms"`
+        SilenceMs  int    `yaml:"silence_ms"`
     } `yaml:"audio"`
 
     Test struct {
-        Repeat   int           `yaml:"repeat"`    // количество повторений
-        Interval time.Duration `yaml:"interval"`  // интервал между повторениями
-        Warmup   int           `yaml:"warmup"`    // прогрев перед замерами
+        Repeat   int           `yaml:"repeat"`
+        Interval time.Duration `yaml:"interval"`
+        Warmup   int           `yaml:"warmup"`
     } `yaml:"test"`
 
     Output struct {
