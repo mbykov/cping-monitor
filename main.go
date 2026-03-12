@@ -42,6 +42,7 @@ func main() {
 
     model := NewModel(cfg)
     p := tea.NewProgram(model, tea.WithAltScreen())
+    model.SetProgram(p)
 
     if _, err := p.Run(); err != nil {
         log.Fatal(err)

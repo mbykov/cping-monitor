@@ -4,7 +4,7 @@ import (
     "fmt"
     "log"
     "os"
-    // "runtime/debug"
+    // "time"
 
     "github.com/gordonklaus/portaudio"
 )
@@ -16,6 +16,7 @@ type Recorder struct {
     buffer     []int16
     recording  bool
     chunkChan  chan []float32
+    allSamples []float32 // Накопительный буфер для всей сессии записи
 }
 
 func NewRecorder(sampleRate, chunkMs int) (*Recorder, error) {
@@ -30,52 +31,13 @@ func NewRecorder(sampleRate, chunkMs int) (*Recorder, error) {
     }
     log.Println("✅ PortAudio initialized")
 
-    // Получаем список всех устройств с защитой от паники
-    log.Println("Getting device list...")
-
-    // var devices []*portaudio.DeviceInfo
-    // var devErr error
-
-    // func() {
-    //     defer func() {
-    //         if r := recover(); r != nil {
-    //             log.Printf("🔥🔥🔥 PANIC in portaudio.Devices(): %v", r)
-    //             debug.PrintStack()
-    //             devErr = fmt.Errorf("panic: %v", r)
-    //         }
-    //     }()
-    //     devices, devErr = portaudio.Devices()
-    // }()
-
-    // if devErr != nil {
-    //     portaudio.Terminate()
-    //     return nil, fmt.Errorf("can't get devices: %w", devErr)
-    // }
-
-    // Ищем первое устройство с входом (микрофон)
-    // var device *portaudio.DeviceInfo
-    // for i, d := range devices {
-    //     log.Printf("Device %d: %s (inputs: %d, outputs: %d)",
-    //         i, d.Name, d.MaxInputChannels, d.MaxOutputChannels)
-    //     if d.MaxInputChannels > 0 {
-    //         device = d
-    //         log.Printf("✅ Found input device: %s", d.Name)
-    //         break
-    //     }
-    // }
-
-    // if device == nil {
-    //     portaudio.Terminate()
-    //     return nil, fmt.Errorf("no input device found")
-    // }
-    log.Println("Getting default binput device...")
+    log.Println("Getting default input device...")
     device, err := portaudio.DefaultInputDevice()
     if err != nil {
         portaudio.Terminate()
         return nil, fmt.Errorf("no default input device: %w", err)
     }
-    log.Printf("✅ Using device: %s", device.Name)
-
+    log.Printf("✅ Using device: %s (channels: %d)", device.Name, device.MaxInputChannels)
 
     chunkSize := sampleRate * chunkMs / 1000
     log.Printf("Chunk size: %d frames", chunkSize)
@@ -105,36 +67,36 @@ func NewRecorder(sampleRate, chunkMs int) (*Recorder, error) {
     return r, nil
 }
 
-// processAudio - правильная сигнатура для PortAudio
 func (r *Recorder) processAudio(in [][]int16, out [][]int16, timeInfo portaudio.StreamCallbackTimeInfo, flags portaudio.StreamCallbackFlags) {
-    log.Printf("processAudio called, recording=%v, in len=%d", r.recording, len(in))
     if !r.recording || len(in) == 0 || len(in[0]) == 0 {
         return
     }
 
-    log.Printf("Got %d samples", len(in[0]))
-    r.buffer = append(r.buffer, in[0]...)
-
     floatChunk := make([]float32, len(in[0]))
     for i, sample := range in[0] {
-        floatChunk[i] = float32(sample) / 32768.0
+        f := float32(sample) / 32768.0
+        floatChunk[i] = f
     }
+
+    // Сохраняем в общий буфер для последующего повтора (кнопка 's')
+    r.allSamples = append(r.allSamples, floatChunk...)
 
     select {
     case r.chunkChan <- floatChunk:
-        log.Printf("Sent chunk of %d samples", len(floatChunk))
     default:
-        log.Println("Chunk channel full, dropping chunk")
+        // Канал полон, пропускаем для UI, но в allSamples данные уже сохранились
     }
+}
+
+func (r *Recorder) GetAllSamples() []float32 {
+    return r.allSamples
 }
 
 func (r *Recorder) StartRecording() error {
     log.Println("Starting recording stream...")
     r.buffer = make([]int16, 0)
     r.recording = true
-    err := r.stream.Start()
-    log.Printf("Stream start result: %v", err)
-    return err
+    return r.stream.Start()
 }
 
 func (r *Recorder) StopRecording() ([]byte, error) {
@@ -187,8 +149,13 @@ func SaveAudio(filename string, data []byte, sampleRate int) error {
 
     copy(header[12:16], []byte("fmt "))
     header[16] = 16
+    header[17] = 0
+    header[18] = 0
+    header[19] = 0
     header[20] = 1
+    header[21] = 0
     header[22] = 1
+    header[23] = 0
     header[24] = byte(sampleRate)
     header[25] = byte(sampleRate >> 8)
     header[26] = byte(sampleRate >> 16)
@@ -199,7 +166,9 @@ func SaveAudio(filename string, data []byte, sampleRate int) error {
     header[30] = byte(byteRate >> 16)
     header[31] = byte(byteRate >> 24)
     header[32] = 2
+    header[33] = 0
     header[34] = 16
+    header[35] = 0
 
     copy(header[36:40], []byte("data"))
     header[40] = byte(len(data))
