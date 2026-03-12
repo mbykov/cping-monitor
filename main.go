@@ -40,7 +40,7 @@ func main() {
 
     log.Printf("Config loaded: %+v", cfg)
 
-    model := NewModel(cfg)
+    model := newModel(cfg)  // было NewModel, теперь newModel
     p := tea.NewProgram(model, tea.WithAltScreen())
     model.SetProgram(p)
 
