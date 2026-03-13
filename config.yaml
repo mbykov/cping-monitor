@@ -1,22 +1,5 @@
 server:
-  host: "localhost"
   port: 6006
-  cert: "../bhl/.cert/combined-tma-cert.pem"
-  key: "../bhl/.cert/tma.local+2-key.pem"
-
-audio:
-  source: "microphone"  # или "file"
-  file_path: ""
-  sample_rate: 16000
-  chunk_ms: 100
-  silence_ms: 500
-
-test:
-  repeat: 5
-  interval: 1s
-  warmup: 2
-
-output:
-  save_audio: true
-  save_dir: "./recordings"
-  log_level: "info"
+  host: localhost
+  cert: "../.cert/combined-tma-cert.pem"
+  key: "../.cert/tma.local+2-key.pem"
